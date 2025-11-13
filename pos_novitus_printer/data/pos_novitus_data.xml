@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Default data for Novitus printer configuration -->
+
+        <!-- This file can be used to create default tax mappings for Polish VAT rates -->
+        <!-- Currently empty, as tax configuration is company-specific -->
+
+    </data>
+</odoo>

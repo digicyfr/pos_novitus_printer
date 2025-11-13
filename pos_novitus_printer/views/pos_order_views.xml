@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- POS Order Form View - Add fiscal receipt fields -->
+    <record id="view_pos_order_form_novitus" model="ir.ui.view">
+        <field name="name">pos.order.form.novitus</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <!-- Add fiscal receipt information -->
+            <xpath expr="//field[@name='amount_total']" position="after">
+                <field name="is_fiscal_receipt" invisible="1"/>
+                <field name="fiscal_print_status" invisible="1"/>
+            </xpath>
+
+            <!-- Add fiscal receipt notebook page -->
+            <xpath expr="//page[@name='extra']" position="after">
+                <page string="Fiscal Receipt" invisible="not is_fiscal_receipt">
+                    <group>
+                        <group string="Fiscal Information">
+                            <field name="fiscal_receipt_number"/>
+                            <field name="fiscal_receipt_type"/>
+                            <field name="fiscal_receipt_date"/>
+                            <field name="fiscal_printer_id"/>
+                        </group>
+                        <group string="Status">
+                            <field name="fiscal_print_status"/>
+                            <field name="fiscal_retry_count" invisible="fiscal_retry_count == 0"/>
+                            <field name="fiscal_print_error" invisible="not fiscal_print_error"/>
+                            <field name="crk_transmitted"/>
+                            <field name="crk_transmission_date" invisible="not crk_transmitted"/>
+                        </group>
+                    </group>
+
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_print_fiscal_receipt"
+                                type="object"
+                                string="Print Fiscal Receipt"
+                                class="oe_stat_button"
+                                icon="fa-print"
+                                invisible="is_fiscal_receipt"/>
+                        <button name="action_retry_fiscal_print"
+                                type="object"
+                                string="Retry Fiscal Print"
+                                class="oe_stat_button"
+                                icon="fa-refresh"
+                                invisible="fiscal_print_status != 'failed' or fiscal_retry_count >= 3"/>
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- POS Order Tree View - Add fiscal number column -->
+    <record id="view_pos_order_tree_novitus" model="ir.ui.view">
+        <field name="name">pos.order.tree.novitus</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='amount_total']" position="after">
+                <field name="fiscal_receipt_number" optional="hide"/>
+                <field name="is_fiscal_receipt" string="Fiscal" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

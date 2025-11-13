@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Printer Form View - Add Novitus configuration fields -->
+    <record id="view_pos_printer_form_novitus" model="ir.ui.view">
+        <field name="name">pos.printer.form.novitus</field>
+        <field name="model">pos.printer</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_printer_form"/>
+        <field name="arch" type="xml">
+            <!-- Add Novitus configuration after printer_type field -->
+            <xpath expr="//field[@name='printer_type']" position="after">
+                <field name="novitus_connection_status" invisible="printer_type != 'novitus_online'"/>
+            </xpath>
+
+            <!-- Add Novitus configuration page in notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Novitus Configuration" invisible="printer_type != 'novitus_online'">
+                    <group>
+                        <group string="Network Configuration">
+                            <field name="novitus_printer_ip" required="printer_type == 'novitus_online'"/>
+                            <field name="novitus_printer_port"/>
+                            <field name="novitus_use_https"/>
+                            <button name="action_test_novitus_connection"
+                                    string="Test Connection"
+                                    type="object"
+                                    class="btn-primary"
+                                    invisible="not novitus_printer_ip"/>
+                        </group>
+                        <group string="Printer Information">
+                            <field name="novitus_fiscal_id" readonly="1"/>
+                            <field name="novitus_printer_model" readonly="1"/>
+                            <field name="novitus_cashier_id"/>
+                            <field name="novitus_last_connection_test" readonly="1"/>
+                            <field name="novitus_last_error" readonly="1" invisible="not novitus_last_error"/>
+                        </group>
+                    </group>
+
+                    <separator string="PTU (Polish VAT) Rate Mapping"/>
+                    <group>
+                        <group string="Standard & Reduced Rates">
+                            <field name="novitus_ptu_a_tax_id"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                            <field name="novitus_ptu_b_tax_id"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                            <field name="novitus_ptu_c_tax_id"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                        </group>
+                        <group string="Zero Rate & Exempt">
+                            <field name="novitus_ptu_d_tax_id"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                            <field name="novitus_ptu_e_tax_id"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                        </group>
+                    </group>
+
+                    <div class="alert alert-info" role="alert">
+                        <strong>PTU Rate Mapping Guide:</strong>
+                        <ul>
+                            <li><strong>PTU A (23%):</strong> Standard VAT rate - most goods and services</li>
+                            <li><strong>PTU B (8%):</strong> Reduced rate - food, transport, some services</li>
+                            <li><strong>PTU C (5%):</strong> Reduced rate - books, some food items</li>
+                            <li><strong>PTU D (0%):</strong> Zero rate - exports, intra-EU supplies</li>
+                            <li><strong>PTU E:</strong> Exempt - education, healthcare, insurance</li>
+                        </ul>
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

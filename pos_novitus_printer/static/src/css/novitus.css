@@ -1,0 +1,68 @@
+/**
+ * Novitus Fiscal Printer - POS Styling
+ */
+
+/* Status indicators for Novitus printer */
+.novitus-status-connected {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.novitus-status-disconnected {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.novitus-status-error {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+/* Fiscal receipt number display */
+.novitus-fiscal-number {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #007bff;
+    padding: 10px;
+    background-color: #e7f3ff;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+/* PTU rate mapping helpers */
+.novitus-ptu-mapping-help {
+    font-size: 0.9em;
+    color: #666;
+    font-style: italic;
+}
+
+/* Novitus printer icon/badge */
+.novitus-printer-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background-color: #17a2b8;
+    color: white;
+    border-radius: 3px;
+    font-size: 0.85em;
+    margin-left: 5px;
+}
+
+/* Error messages */
+.novitus-error-message {
+    color: #dc3545;
+    padding: 8px;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+/* Success messages */
+.novitus-success-message {
+    color: #155724;
+    padding: 8px;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    margin: 10px 0;
+}

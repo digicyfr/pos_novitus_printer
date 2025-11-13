@@ -1,0 +1,62 @@
+# Translation for pos_novitus_printer module
+# Polish (PL)
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo 17.0\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. module: pos_novitus_printer
+#: model:ir.model.fields,field_description:pos_novitus_printer.field_pos_printer__novitus_printer_ip
+msgid "Novitus Printer IP Address"
+msgstr "Adres IP drukarki Novitus"
+
+#: model:ir.model.fields,field_description:pos_novitus_printer.field_pos_printer__novitus_printer_port
+msgid "Novitus Printer Port"
+msgstr "Port drukarki Novitus"
+
+#: model:ir.model.fields,field_description:pos_novitus_printer.field_pos_order__fiscal_receipt_number
+msgid "Fiscal Receipt Number"
+msgstr "Numer paragonu fiskalnego"
+
+#: model:ir.model.fields,field_description:pos_novitus_printer.field_pos_order__is_fiscal_receipt
+msgid "Is Fiscal Receipt"
+msgstr "Czy paragon fiskalny"
+
+#: model:ir.ui.view,arch_db:pos_novitus_printer.view_pos_printer_form_novitus
+msgid "Test Connection"
+msgstr "Testuj połączenie"
+
+#: model:ir.ui.view,arch_db:pos_novitus_printer.view_pos_printer_form_novitus
+msgid "PTU (Polish VAT) Rate Mapping"
+msgstr "Mapowanie stawek PTU (VAT)"
+
+#: code:addons/pos_novitus_printer/models/pos_printer.py
+msgid "Success"
+msgstr "Sukces"
+
+#: code:addons/pos_novitus_printer/models/pos_printer.py
+msgid "Connection Failed"
+msgstr "Błąd połączenia"
+
+#: code:addons/pos_novitus_printer/models/pos_printer.py
+msgid "Cannot connect to Novitus printer."
+msgstr "Nie można połączyć się z drukarką Novitus."
+
+#: code:addons/pos_novitus_printer/models/pos_order.py
+msgid "Fiscal Receipt Printed"
+msgstr "Paragon fiskalny wydrukowany"
+
+#: code:addons/pos_novitus_printer/models/pos_order.py
+msgid "Fiscal Number"
+msgstr "Numer fiskalny"
+
+#: model:ir.model.fields.selection,name:pos_novitus_printer.selection__pos_order__fiscal_receipt_type__paragon
+msgid "Paragon (Receipt)"
+msgstr "Paragon"
+
+#: model:ir.model.fields.selection,name:pos_novitus_printer.selection__pos_order__fiscal_receipt_type__faktura
+msgid "Faktura (Invoice)"
+msgstr "Faktura"

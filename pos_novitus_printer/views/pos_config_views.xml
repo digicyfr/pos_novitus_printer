@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- POS Configuration View - Add Novitus printer info -->
+    <record id="view_pos_config_form_novitus" model="ir.ui.view">
+        <field name="name">pos.config.form.novitus</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <!-- Add information about Novitus printer in Connected Devices section -->
+            <xpath expr="//page[@name='devices']" position="inside">
+                <div class="alert alert-success mt-3" role="alert" invisible="not printer_ids">
+                    <strong>Novitus Fiscal Printer:</strong>
+                    <span invisible="not printer_ids">
+                        Configured printers will appear in the "Receipt Printer" and "Order Printers" sections above.
+                        To add a Novitus printer, click "Add a line" and select "Novitus Online Fiscal Printer" as the type.
+                    </span>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>
