@@ -1,6 +1,6 @@
 /** @odoo-module */
 
-import { PosStore } from "@point_of_sale/app/store/pos_store";
+import { PosStore } from "@point_of_sale/app/services/pos_store";
 import { NovitusPrinter } from "@pos_novitus_printer/app/novitus_printer";
 import { patch } from "@web/core/utils/patch";
 import { _t } from "@web/core/l10n/translation";
