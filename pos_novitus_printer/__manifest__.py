@@ -1,29 +1,32 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'POS Novitus Online Fiscal Printer',
-    'version': '17.0.2.0.0',
+    'version': '17.0.3.0.0',
     'category': 'Point of Sale',
-    'summary': 'Free Novitus fiscal printer integration for Odoo POS - Polish compliance',
+    'summary': 'Novitus fiscal printer integration for Odoo POS via NoviAPI - Polish compliance',
 
     'description': """
 POS Novitus Online Fiscal Printer Integration
 ==============================================
 
-FREE & OPEN SOURCE integration of Novitus online fiscal printers with Odoo POS.
+Integration of Novitus online fiscal printers with Odoo POS
+using the NoviAPI v1.0.4 REST protocol.
 
 Developed by Digicyfr Polska - Odoo Experts in Warsaw, Poland.
 
 Features:
 ---------
-* Support for Novitus online fiscal printers (POINT, HD II Online, BONO Online, DEON)
-* NoviAPI REST protocol communication via HTTP/HTTPS
-* Fiscal receipt (paragon) printing with unique fiscal numbers
+* NoviAPI v1.0.4 REST protocol with JWT token authentication
+* Verified 3-step command flow (POST, PUT confirm, GET poll)
+* Fiscal receipt printing via direct_io serial protocol commands
 * PTU (Polish VAT) rate mapping (A=23%, B=8%, C=5%, D=0%, E=exempt)
-* Fiscal number tracking on POS orders
-* Cash drawer control
-* Error handling and offline detection
-* Polish market fiscal compliance (2025)
-* Compatible with Odoo Community & Enterprise
+* Fiscal number and JPK ID tracking on POS orders
+* Cash drawer control via direct_io
+* Daily Z-report with queue safety check
+* Automatic token refresh via PATCH (no rate limit consumed)
+* Full error handling: 400, 401, 403, 404, 409, 429, 500, 507
+* Decimal arithmetic for fiscal math (ROUND_HALF_UP)
+* Polish market fiscal compliance (2025/2026)
 
 Supported Printers:
 -------------------
@@ -31,55 +34,23 @@ Supported Printers:
 * Novitus HD II Online (ONLINE 2.0)
 * Novitus BONO Online
 * Novitus DEON Online
-* Any Novitus printer with NoviAPI support
+* Any Novitus printer with NoviAPI v1 support
 
 Requirements:
 -------------
-* Odoo 17.0 or higher (Community or Enterprise)
+* Odoo 17.0 (Community or Enterprise)
 * Novitus online fiscal printer with NoviAPI enabled
-* Network connectivity between Odoo server and printer
-* Fiscalized printer registered with Polish tax office (KAS)
-
-Configuration:
---------------
-1. Install this module
-2. Go to Point of Sale → Configuration → Point of Sale
-3. Open your POS configuration
-4. Under "Connected Devices", click "Add Printer"
-5. Select "Novitus Online Fiscal Printer"
-6. Enter printer IP address and port (default: 8888)
-7. Map PTU tax rates to Odoo taxes
-8. Test connection
-9. Save and start using POS!
-
-Polish Market:
---------------
-This module provides full compliance with Polish fiscal regulations (2025).
-It supports mandatory fiscal printer requirements for retail businesses in Poland.
-
-Need Help?
-----------
-Professional services available:
-* Implementation & Configuration
-* Custom Development & Integration
-* Training & Consulting
-* Odoo Enterprise Support
-* Managed Services
-
-Contact: info@digicyfr.com
-Website: https://www.digicyfr.com
-GitHub: https://github.com/digicyfr/pos-novitus-printer
-
-Professional Services by Digicyfr Polska
-Odoo Experts | Warsaw, Poland
+* Network connectivity between Odoo server and printer (port 8888)
 
 License: LGPL-3
-Author: Azad Karipody Hamza
-Company: Digicyfr Polska
+
+Website: https://www.digicyfr.com
+Contact: info@digicyfr.com
+GitHub: https://github.com/digicyfr/pos-novitus-printer
     """,
 
     'author': 'Digicyfr Polska',
-    'maintainer': 'Azad Karipody Hamza',
+    'maintainer': 'Digicyfr Polska',
     'website': 'https://www.digicyfr.com',
     'license': 'LGPL-3',
 
@@ -101,6 +72,8 @@ Company: Digicyfr Polska
         'point_of_sale._assets_pos': [
             'pos_novitus_printer/static/src/app/novitus_printer.js',
             'pos_novitus_printer/static/src/overrides/models/models.js',
+            'pos_novitus_printer/static/src/overrides/components/novitus_close_pos.js',
+            'pos_novitus_printer/static/src/overrides/components/novitus_close_pos.xml',
             'pos_novitus_printer/static/src/css/novitus.css',
         ],
     },
@@ -108,9 +81,6 @@ Company: Digicyfr Polska
     'images': [
         'static/description/icon.png',
         'static/description/banner.png',
-        'static/description/screenshot_1.png',
-        'static/description/screenshot_2.png',
-        'static/description/screenshot_3.png',
     ],
 
     'price': 0.00,

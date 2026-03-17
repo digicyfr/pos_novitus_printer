@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import http
+from odoo import fields, http
 from odoo.http import request
 import json
 import logging
@@ -24,14 +24,23 @@ class NovitusPrinterController(http.Controller):
         Returns:
             dict: {'success': bool}
         """
+        # BUG 3 FIX: Access control check
+        if not request.env.user.has_group('point_of_sale.group_pos_manager'):
+            return request.make_json_response(
+                {'error': 'Access denied'},
+                status=403
+            )
+
         try:
             order = request.env['pos.order'].browse(order_id)
-            if order:
+            # BUG 1 FIX: browse() without exists()
+            if order.exists():
                 order.write({
                     'is_fiscal_receipt': True,
                     'fiscal_receipt_number': fiscal_number,
                     'fiscal_printer_id': printer_id,
-                    'fiscal_receipt_date': http.request.env['ir.fields'].Datetime.now(),
+                    # BUG 2 FIX: Wrong Datetime import/usage
+                    'fiscal_receipt_date': fields.Datetime.now(),
                     'fiscal_print_status': 'printed',
                     'crk_transmitted': kwargs.get('crk_transmitted', False)
                 })

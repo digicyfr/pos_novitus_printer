@@ -108,6 +108,28 @@ class PosPrinter(models.Model):
         readonly=True
     )
 
+    # NoviAPI token management
+    novitus_token_cache = fields.Char(
+        string='Cached API Token',
+        copy=False,
+        help='JWT token cached from last successful NoviAPI authentication'
+    )
+    novitus_token_expiry = fields.Datetime(
+        string='Token Expiry',
+        copy=False,
+        help='Expiry timestamp of the cached JWT token'
+    )
+    novitus_poll_timeout = fields.Integer(
+        string='Status Poll Timeout (ms)',
+        default=5000,
+        help='Milliseconds to wait per GET status poll. Default 5000.'
+    )
+    novitus_max_retries = fields.Integer(
+        string='Max Command Retries',
+        default=3,
+        help='Maximum retry attempts on 403 concurrency errors'
+    )
+
     @api.constrains('novitus_printer_ip')
     def _check_novitus_printer_ip(self):
         """Validate IP address format"""
@@ -148,7 +170,7 @@ class PosPrinter(models.Model):
                 self.novitus_cashier_id = 'ODOO_POS'
 
     def action_test_novitus_connection(self):
-        """Test connection to Novitus printer"""
+        """Test connection to Novitus printer with timing feedback."""
         self.ensure_one()
 
         if self.printer_type != 'novitus_online':
@@ -157,9 +179,11 @@ class PosPrinter(models.Model):
         if not self.novitus_printer_ip:
             raise ValidationError(_('Please configure the printer IP address first.'))
 
-        # Call NoviAPI service to test connection
+        # Call NoviAPI service to test connection (returns elapsed time)
         noviapi_service = self.env['novitus.noviapi']
         result = noviapi_service.test_connection(self)
+
+        elapsed = result.get('elapsed', 0)
 
         # Update status fields
         self.write({
@@ -175,16 +199,17 @@ class PosPrinter(models.Model):
                 'novitus_printer_model': result['printer_info'].get('model')
             })
 
-        # Show notification
+        # Show notification with timing
         if result.get('success'):
             return {
                 'type': 'ir.actions.client',
                 'tag': 'display_notification',
                 'params': {
                     'title': _('Success'),
-                    'message': _('Connection to Novitus printer successful!\nModel: %s\nFiscal ID: %s') % (
-                        result.get('printer_info', {}).get('model', 'Unknown'),
-                        result.get('printer_info', {}).get('fiscal_id', 'Unknown')
+                    'message': _('Connected to Novitus printer at %s:%s (%ss)') % (
+                        self.novitus_printer_ip,
+                        self.novitus_printer_port,
+                        elapsed,
                     ),
                     'type': 'success',
                     'sticky': False,
@@ -196,7 +221,12 @@ class PosPrinter(models.Model):
                 'tag': 'display_notification',
                 'params': {
                     'title': _('Connection Failed'),
-                    'message': _('Cannot connect to Novitus printer.\nError: %s\n\nPlease check:\n- Printer IP address and port\n- Network connectivity\n- Printer is powered on\n- NoviAPI is enabled on printer') % result.get('error', 'Unknown error'),
+                    'message': _('Cannot connect to Novitus printer at %s:%s.\n'
+                                 'Check network connection and verify NoviAPI is enabled '
+                                 'on the printer (Ustawienia → NOVIAPI → Aktywna).') % (
+                        self.novitus_printer_ip,
+                        self.novitus_printer_port,
+                    ),
                     'type': 'danger',
                     'sticky': True,
                 }

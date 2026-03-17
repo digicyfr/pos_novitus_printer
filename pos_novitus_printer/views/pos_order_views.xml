@@ -50,15 +50,24 @@
         </field>
     </record>
 
-    <!-- POS Order Tree View - Add fiscal number column -->
+    <!-- POS Order Tree View - Add fiscal status and receipt number -->
     <record id="view_pos_order_tree_novitus" model="ir.ui.view">
         <field name="name">pos.order.tree.novitus</field>
         <field name="model">pos.order</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
         <field name="arch" type="xml">
+            <!-- Add color coding for fiscal status -->
+            <xpath expr="//tree" position="attributes">
+                <attribute name="decoration-danger">fiscal_print_status == 'failed'</attribute>
+                <attribute name="decoration-success">fiscal_print_status == 'printed'</attribute>
+            </xpath>
+            <!-- Add fiscal columns after order name (first visible position) -->
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="fiscal_print_status" string="Fiscal Status"/>
+            </xpath>
+            <!-- Add receipt number after amount_total (optional but shown by default) -->
             <xpath expr="//field[@name='amount_total']" position="after">
-                <field name="fiscal_receipt_number" optional="hide"/>
-                <field name="is_fiscal_receipt" string="Fiscal" optional="hide"/>
+                <field name="fiscal_receipt_number" optional="show"/>
             </xpath>
         </field>
     </record>

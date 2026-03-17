@@ -9,6 +9,10 @@ import { _t } from "@web/core/l10n/translation";
  * This class extends BasePrinter to integrate Novitus online fiscal printers
  * with Odoo POS using the NoviAPI REST protocol.
  *
+ * ARCHITECTURE: JavaScript sends order reference to Python backend.
+ * Python does ALL payload construction and printer communication.
+ * JavaScript handles UI, notifications, and storing fiscal data.
+ *
  * Supports:
  * - Novitus POINT (ONLINE 3.0)
  * - Novitus HD II Online (ONLINE 2.0)
@@ -26,221 +30,306 @@ export class NovitusPrinter extends BasePrinter {
         this.fiscal_id = fiscal_id;
         this.ptu_mappings = ptu_mappings || {};
 
-        // Build base URL
+        // Build base URL for display purposes only
         const protocol = this.use_https ? 'https' : 'http';
         this.baseUrl = `${protocol}://${this.ip}:${this.port}`;
 
         console.log(`[Novitus] Printer initialized: ${this.baseUrl}`);
+
+        // Set up token refresh interval (every 18 minutes)
+        this._tokenRefreshInterval = setInterval(() => {
+            this._refreshToken();
+        }, 18 * 60 * 1000);
+    }
+
+    /**
+     * Clean up on destroy
+     */
+    destroy() {
+        if (this._tokenRefreshInterval) {
+            clearInterval(this._tokenRefreshInterval);
+            this._tokenRefreshInterval = null;
+        }
+    }
+
+    /**
+     * Proactively refresh token to avoid expiry during transactions
+     * @private
+     */
+    async _refreshToken() {
+        try {
+            await this.env.services.orm.call(
+                'novitus.noviapi',
+                'test_connection_from_pos',
+                [this.printer_id]
+            );
+            console.log('[Novitus] Token refresh triggered via connection test');
+        } catch (error) {
+            console.warn('[Novitus] Background token refresh failed:', error);
+        }
+    }
+
+    /**
+     * Test connection to printer
+     * @returns {Promise<boolean>}
+     */
+    async testConnection() {
+        try {
+            console.log('[Novitus] Testing connection to', this.baseUrl);
+
+            const result = await this.env.services.orm.call(
+                'novitus.noviapi',
+                'test_connection_from_pos',
+                [this.printer_id]
+            );
+
+            if (result) {
+                this.env.services.notification.add(
+                    _t('Novitus printer connected successfully.'),
+                    { type: 'success', sticky: false }
+                );
+            } else {
+                this.env.services.notification.add(
+                    _t('Cannot connect to Novitus printer. Check IP and network.'),
+                    { type: 'danger', sticky: true }
+                );
+            }
+
+            return result;
+
+        } catch (error) {
+            console.error('[Novitus] Connection test error:', error);
+            this.env.services.notification.add(
+                _t('Connection test failed: ') + (error.message || error),
+                { type: 'danger', sticky: true }
+            );
+            return false;
+        }
     }
 
     /**
      * Print fiscal receipt
-     * Called by POS when order is completed
+     * Sends order reference to Python backend which handles all payload construction
      *
-     * @override
-     * @param {HTML} receipt - Receipt HTML element
-     * @returns {Promise<Object>} Print result
+     * @param {Object} order - POS order object
+     * @returns {Promise<Object>} {successful: bool}
      */
-    async printReceipt(receipt) {
-        try {
-            console.log('[Novitus] printReceipt called');
-
-            // Get order data from POS
-            const order = this.pos.get_order();
-
-            if (!order) {
-                throw new Error(_t('No active order found'));
-            }
-
-            // Prepare receipt data for Novitus
-            const receiptData = this.prepareReceiptData(order);
-
-            console.log('[Novitus] Receipt data prepared:', receiptData);
-
-            // Send to printer via backend
-            const result = await this.sendPrintingJob(receiptData);
-
-            if (!result.success) {
-                return this.getResultsError(result);
-            }
-
-            // Store fiscal number in order
-            if (result.fiscal_number) {
-                await this.saveFiscalNumber(order, result);
-            }
-
-            return {
-                successful: true,
-                fiscalNumber: result.fiscal_number,
-                printerId: result.printer_id,
-                crkTransmitted: result.crk_transmitted
-            };
-
-        } catch (error) {
-            console.error('[Novitus] Print error:', error);
+    async printFiscalReceipt(order) {
+        if (!order) {
             return {
                 successful: false,
                 message: {
-                    title: _t("Fiscal Printing Error"),
-                    body: _t("Failed to print fiscal receipt: ") + error.message
-                }
+                    title: _t('Fiscal Printing Error'),
+                    body: _t('No active order found.'),
+                },
             };
         }
-    }
 
-    /**
-     * Prepare receipt data for Novitus printer
-     * Converts POS order to NoviAPI format
-     *
-     * @param {Object} order - POS order
-     * @returns {Object} Receipt data for NoviAPI
-     */
-    prepareReceiptData(order) {
-        const company = this.pos.company;
-        const session = this.pos.pos_session;
+        // Show printing notification
+        const closePrintingNotif = this.env.services.notification.add(
+            _t('Printing fiscal receipt...'),
+            { type: 'info', sticky: true }
+        );
 
-        // Prepare items
-        const items = [];
-        for (const line of order.get_orderlines()) {
-            // Skip display-only lines
-            if (line.display_type) {
-                continue;
-            }
-
-            // Get PTU rate for this line
-            const ptu = this.getPTURate(line);
-
-            items.push({
-                name: line.get_product().display_name,
-                quantity: line.get_quantity(),
-                price: line.get_unit_price(),
-                vat_rate: ptu,
-                gross_amount: line.get_price_with_tax(),
-                net_amount: line.get_price_without_tax(),
-            });
-        }
-
-        // Get payment method
-        let payment_method = 'cash';
-        const payments = order.get_paymentlines();
-        if (payments && payments.length > 0) {
-            const payment = payments[0];
-            if (payment.payment_method.type === 'bank') {
-                payment_method = 'card';
-            } else if (payment.payment_method.type === 'pay_later') {
-                payment_method = 'credit';
-            }
-        }
-
-        // Get customer info
-        const partner = order.get_partner();
-        const buyer = {
-            name: partner ? partner.name : 'Paragon',
-            nip: partner && partner.vat ? partner.vat : '',
-        };
-
-        // Build payload
-        return {
-            system_identifier: session.name,
-            cashier: this.pos.get_cashier()?.name || this.pos.user.name,
-            seller: {
-                name: company.name,
-                nip: company.vat || '',
-                address: company.street || '',
-                city: company.city || '',
-                postal_code: company.zip || '',
-            },
-            buyer: buyer,
-            items: items,
-            payment_method: payment_method,
-            total_gross: order.get_total_with_tax(),
-            total_net: order.get_total_without_tax(),
-            total_vat: order.get_total_tax(),
-            currency: this.pos.currency.name,
-        };
-    }
-
-    /**
-     * Get PTU (Polish VAT) rate for order line
-     *
-     * @param {Object} line - Order line
-     * @returns {string} PTU rate ('A', 'B', 'C', 'D', 'E')
-     */
-    getPTURate(line) {
-        const taxes = line.get_taxes();
-
-        if (!taxes || taxes.length === 0) {
-            return 'D'; // 0% if no tax
-        }
-
-        const tax = taxes[0];
-
-        // Check configured PTU mappings
-        if (this.ptu_mappings) {
-            if (tax.id === this.ptu_mappings.ptu_a_tax_id) return 'A';
-            if (tax.id === this.ptu_mappings.ptu_b_tax_id) return 'B';
-            if (tax.id === this.ptu_mappings.ptu_c_tax_id) return 'C';
-            if (tax.id === this.ptu_mappings.ptu_d_tax_id) return 'D';
-            if (tax.id === this.ptu_mappings.ptu_e_tax_id) return 'E';
-        }
-
-        // Fallback: map by tax amount
-        const amount = tax.amount;
-        if (amount === 23) return 'A';
-        if (amount === 8) return 'B';
-        if (amount === 5) return 'C';
-        if (amount === 0) return 'D';
-
-        return 'E'; // Exempt
-    }
-
-    /**
-     * Send printing job to Novitus printer
-     *
-     * @override
-     * @param {Object} receiptData - Receipt data
-     * @returns {Promise<Object>} Result from printer
-     */
-    async sendPrintingJob(receiptData) {
         try {
-            // Call backend to print via NoviAPI
-            const response = await this.env.services.orm.call(
+            // Call Python backend — it handles ALL payload construction
+            const result = await this.env.services.orm.call(
                 'novitus.noviapi',
                 'print_fiscal_receipt_from_pos',
-                [receiptData, this.printer_id]
+                [order.name, this.printer_id]
             );
 
-            console.log('[Novitus] Print response:', response);
+            // Close the "Printing..." notification
+            if (closePrintingNotif) {
+                closePrintingNotif();
+            }
 
-            return response;
+            if (result.success) {
+                // Save fiscal data to order
+                if (order.id && !result.already_printed) {
+                    await this._saveFiscalData(order.id, result);
+                }
+
+                // Store fiscal number on the local order object for sync
+                order.fiscal_receipt_number = result.fiscal_number;
+                order.fiscal_printer_id = result.printer_id;
+                order.fiscal_receipt_date = new Date().toISOString();
+                order.crk_transmitted = result.crk_transmitted || false;
+
+                const jpkMsg = result.jpkid ? ` (JPK: ${result.jpkid})` : '';
+                this.env.services.notification.add(
+                    _t('Fiscal receipt printed successfully') + jpkMsg,
+                    { type: 'success', sticky: false }
+                );
+
+                return { successful: true };
+            } else {
+                this.env.services.notification.add(
+                    _t('Fiscal print failed: ') + (result.error || _t('Unknown error')) +
+                    _t('. Check printer connection.'),
+                    { type: 'danger', sticky: true }
+                );
+
+                return {
+                    successful: false,
+                    message: {
+                        title: _t('Fiscal Printing Error'),
+                        body: result.error || _t('Unknown error'),
+                    },
+                };
+            }
 
         } catch (error) {
-            console.error('[Novitus] sendPrintingJob error:', error);
+            // Close the "Printing..." notification
+            if (closePrintingNotif) {
+                closePrintingNotif();
+            }
+
+            console.error('[Novitus] printFiscalReceipt error:', error);
+
+            // Parse specific error types from backend UserError messages
+            const errorMsg = error.message || error.data?.message || String(error);
+
+            if (errorMsg.includes('409') || errorMsg.includes('Z-report')) {
+                this.env.services.notification.add(
+                    _t('Daily Z-report required. Run daily report from POS settings first.'),
+                    { type: 'warning', sticky: true }
+                );
+            } else if (errorMsg.includes('429') || errorMsg.includes('rate limit')) {
+                this.env.services.notification.add(
+                    _t('Printer token limit reached. Wait or reset from printer menu.'),
+                    { type: 'danger', sticky: true }
+                );
+            } else if (errorMsg.includes('507') || errorMsg.includes('memory full')) {
+                this.env.services.notification.add(
+                    _t('CRITICAL: Printer memory full. Contact system administrator immediately.'),
+                    { type: 'danger', sticky: true }
+                );
+            } else if (errorMsg.includes('did not respond')) {
+                this.env.services.notification.add(
+                    _t('Printer did not respond in time. Check printer status and retry.'),
+                    { type: 'danger', sticky: true }
+                );
+            } else {
+                this.env.services.notification.add(
+                    _t('Fiscal print failed: ') + errorMsg,
+                    { type: 'danger', sticky: true }
+                );
+            }
+
             return {
-                success: false,
-                error: error.message || _t('Unknown error')
+                successful: false,
+                message: {
+                    title: _t('Fiscal Printing Error'),
+                    body: errorMsg,
+                },
             };
+        }
+    }
+
+    /**
+     * Print receipt — override of BasePrinter
+     * Routes to printFiscalReceipt
+     *
+     * @override
+     * @param {HTML} receipt - Receipt HTML element (unused — backend builds payload)
+     * @returns {Promise<Object>}
+     */
+    async printReceipt(receipt) {
+        const order = this.pos.get_order();
+        return this.printFiscalReceipt(order);
+    }
+
+    /**
+     * Save fiscal data to order via backend controller
+     *
+     * @param {number} orderId - POS order database ID
+     * @param {Object} result - Fiscal print result from backend
+     * @private
+     */
+    async _saveFiscalData(orderId, result) {
+        try {
+            await this.env.services.orm.call(
+                'pos.order',
+                'write',
+                [[orderId], {
+                    fiscal_receipt_number: result.fiscal_number || '',
+                    fiscal_printer_id: result.printer_id || '',
+                    fiscal_receipt_date: new Date().toISOString(),
+                    is_fiscal_receipt: true,
+                    fiscal_print_status: 'printed',
+                    crk_transmitted: result.crk_transmitted || false,
+                }]
+            );
+            console.log('[Novitus] Fiscal data saved for order', orderId);
+        } catch (error) {
+            // Don't throw — fiscal receipt is already printed on the printer,
+            // data save failure is non-critical for the customer
+            console.error('[Novitus] Failed to save fiscal data:', error);
+        }
+    }
+
+    /**
+     * Print daily Z-report
+     * @returns {Promise<Object>}
+     */
+    async printDailyReport() {
+        try {
+            const result = await this.env.services.orm.call(
+                'novitus.noviapi',
+                'print_daily_report_from_pos',
+                [this.printer_id]
+            );
+
+            if (result.success) {
+                this.env.services.notification.add(
+                    _t('Daily Z-report printed successfully.'),
+                    { type: 'success', sticky: false }
+                );
+            } else {
+                this.env.services.notification.add(
+                    _t('Daily report failed: ') + (result.error || ''),
+                    { type: 'danger', sticky: true }
+                );
+            }
+
+            return result;
+
+        } catch (error) {
+            const errorMsg = error.message || error.data?.message || String(error);
+
+            if (errorMsg.includes('409') || errorMsg.includes('Z-report')) {
+                this.env.services.notification.add(
+                    _t('Daily Z-report required. Run daily report from POS settings first.'),
+                    { type: 'warning', sticky: true }
+                );
+            } else {
+                this.env.services.notification.add(
+                    _t('Daily report error: ') + errorMsg,
+                    { type: 'danger', sticky: true }
+                );
+            }
+
+            return { success: false, error: errorMsg };
         }
     }
 
     /**
      * Open cash drawer
-     *
-     * @override
      * @returns {Promise<void>}
      */
     async openCashbox() {
         try {
             console.log('[Novitus] Opening cash drawer');
 
-            const response = await this.env.services.orm.call(
+            const result = await this.env.services.orm.call(
                 'novitus.noviapi',
                 'open_cashbox',
                 [this.printer_id]
             );
 
-            if (!response.success) {
-                console.error('[Novitus] Failed to open cash drawer:', response.error);
+            if (!result) {
+                console.error('[Novitus] Failed to open cash drawer');
             }
 
         } catch (error) {
@@ -249,72 +338,20 @@ export class NovitusPrinter extends BasePrinter {
     }
 
     /**
-     * Save fiscal number to order
-     * Updates order in backend with fiscal receipt information
-     *
-     * @param {Object} order - POS order
-     * @param {Object} result - Print result with fiscal number
-     * @returns {Promise<void>}
+     * Get printer queue status
+     * @returns {Promise<number>} Number of requests in queue
      */
-    async saveFiscalNumber(order, result) {
+    async getQueueStatus() {
         try {
-            // Store in order data (will be saved when order is synced)
-            order.fiscal_receipt_number = result.fiscal_number;
-            order.fiscal_printer_id = result.printer_id;
-            order.fiscal_receipt_date = new Date().toISOString();
-            order.crk_transmitted = result.crk_transmitted || false;
-
-            console.log('[Novitus] Fiscal number stored:', result.fiscal_number);
-
-            // If order is already in backend, update it immediately
-            if (order.id) {
-                await this.env.services.orm.call(
-                    'pos.order',
-                    'write',
-                    [[order.id], {
-                        fiscal_receipt_number: result.fiscal_number,
-                        fiscal_printer_id: result.printer_id,
-                        fiscal_receipt_date: order.fiscal_receipt_date,
-                        is_fiscal_receipt: true,
-                        fiscal_print_status: 'printed',
-                        crk_transmitted: result.crk_transmitted
-                    }]
-                );
-            }
-
-        } catch (error) {
-            console.error('[Novitus] Failed to save fiscal number:', error);
-            // Don't throw - fiscal number is already printed,
-            // just logging failed
-        }
-    }
-
-    /**
-     * Test connection to printer
-     * Used for diagnostics
-     *
-     * @returns {Promise<Object>} Connection test result
-     */
-    async testConnection() {
-        try {
-            console.log('[Novitus] Testing connection to', this.baseUrl);
-
-            const response = await this.env.services.orm.call(
+            const count = await this.env.services.orm.call(
                 'novitus.noviapi',
-                'test_connection_from_pos',
+                'get_queue_status',
                 [this.printer_id]
             );
-
-            console.log('[Novitus] Connection test result:', response);
-
-            return response;
-
+            return count;
         } catch (error) {
-            console.error('[Novitus] Connection test error:', error);
-            return {
-                success: false,
-                error: error.message
-            };
+            console.error('[Novitus] getQueueStatus error:', error);
+            return 0;
         }
     }
 }

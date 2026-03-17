@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Add Novitus Daily Z-Report button to close-session popup -->
+    <t t-inherit="point_of_sale.ClosePosPopup" t-inherit-mode="extension">
+        <xpath expr="//footer//div[hasclass('modal-footer-right')]" position="inside">
+            <button class="button icon btn btn-lg btn-primary"
+                    t-on-click="() => this.printNovitusDailyReport()"
+                    title="Print fiscal daily Z-report on Novitus printer">
+                    Raport Dobowy (Z)
+                    <i class="fa fa-calculator" role="img"/>
+            </button>
+        </xpath>
+    </t>
+
+</templates>

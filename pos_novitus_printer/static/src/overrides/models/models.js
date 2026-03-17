@@ -3,6 +3,7 @@
 import { PosStore } from "@point_of_sale/app/store/pos_store";
 import { NovitusPrinter } from "@pos_novitus_printer/app/novitus_printer";
 import { patch } from "@web/core/utils/patch";
+import { _t } from "@web/core/l10n/translation";
 
 /**
  * Patch PosStore to support Novitus printers
@@ -70,13 +71,8 @@ config.novitus_ptu_a_tax_id[0] : null,
                 this.hardwareProxy.printer = this.create_printer(receiptPrinter);
             }
         }
-    }
-});
+    },
 
-/**
- * Extend pos.order to include fiscal receipt fields
- */
-patch(PosStore.prototype, {
     /**
      * Override _flush_orders to ensure fiscal data is included
      */
@@ -94,5 +90,47 @@ patch(PosStore.prototype, {
         }
 
         return super._flush_orders(...arguments);
-    }
+    },
+
+    /**
+     * Print Novitus daily Z-report.
+     * Called from close-session flow or manually.
+     * Checks queue before sending.
+     */
+    async printNovitusDailyReport() {
+        // Find the Novitus printer from config
+        const novitusPrinters = (this.config.printer_ids || []).filter(
+            p => p.printer_type === 'novitus_online'
+        );
+        if (novitusPrinters.length === 0) {
+            return;
+        }
+        const printerId = novitusPrinters[0].id;
+
+        try {
+            const result = await this.env.services.orm.call(
+                'novitus.noviapi',
+                'print_daily_report_from_pos',
+                [printerId]
+            );
+
+            if (result && result.success) {
+                this.env.services.notification.add(
+                    _t('Daily Z-report printed successfully.'),
+                    { type: 'success' }
+                );
+            } else {
+                this.env.services.notification.add(
+                    _t('Daily report failed: ') + (result.error || ''),
+                    { type: 'danger', sticky: true }
+                );
+            }
+        } catch (error) {
+            const msg = error.message || error.data?.message || String(error);
+            this.env.services.notification.add(
+                _t('Daily report error: ') + msg,
+                { type: 'danger', sticky: true }
+            );
+        }
+    },
 });
