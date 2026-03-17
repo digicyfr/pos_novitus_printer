@@ -1,98 +1,53 @@
 # POS Novitus Online Fiscal Printer
 
-[![License: LGPL-3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
-[![Odoo Version](https://img.shields.io/badge/Odoo-17.0-purple.svg)](https://www.odoo.com)
-[![Price](https://img.shields.io/badge/Price-FREE-success.svg)](https://github.com/digicyfr/pos-novitus-printer)
-[![Made in Poland](https://img.shields.io/badge/Made%20in-Poland%20🇵🇱-red.svg)](https://www.digicyfr.com)
+[![License: LGPL-3](https://img.shields.io/badge/license-LGPL--3-blue)](pos_novitus_printer/LICENSE)
+[![Odoo](https://img.shields.io/badge/Odoo-17%20|%2018%20|%2019-purple)](https://www.odoo.com)
+[![Price](https://img.shields.io/badge/Price-FREE-success)](https://github.com/digicyfr/pos_novitus_printer)
 
-**FREE & Open Source** integration of Novitus online fiscal printers with Odoo 17 POS.
+Odoo POS integration with Novitus online fiscal printers via NoviAPI v1.0.4 — Polish fiscal compliance.
 
-Developed by **Digicyfr Polska** - Odoo Experts in Warsaw, Poland.
+## Branches (choose your Odoo version)
 
----
+| Branch | Odoo Version | Status |
+|--------|-------------|--------|
+| [`17.0`](https://github.com/digicyfr/pos_novitus_printer/tree/17.0) | Odoo 17 | Stable — tested |
+| [`18.0`](https://github.com/digicyfr/pos_novitus_printer/tree/18.0) | Odoo 18 | Available |
+| [`19.0`](https://github.com/digicyfr/pos_novitus_printer/tree/19.0) | Odoo 19 | Available |
 
-## ✨ Features
+## Features
 
-- ✅ **NoviAPI REST Protocol** - Modern HTTP/HTTPS communication
-- ✅ **Fiscal Receipt Printing** - Full paragon support with unique fiscal numbers
-- ✅ **PTU Rate Mapping** - Complete Polish VAT system (A=23%, B=8%, C=5%, D=0%, E=exempt)
-- ✅ **Fiscal Number Tracking** - Automatic tracking on POS orders
-- ✅ **Cash Drawer Control** - Open drawer via fiscal printer
-- ✅ **CRK Transmission** - Automatic transmission to Polish tax office
-- ✅ **Odoo Community & Enterprise** - Works with both editions
+- NoviAPI v1.0.4 REST protocol with JWT token authentication
+- Verified 3-step command flow (POST, PUT confirm, GET poll)
+- Fiscal receipt printing via direct_io serial protocol commands
+- PTU rate mapping (A=23%, B=8%, C=5%, D=0%, E=exempt)
+- Fiscal number and JPK ID tracking on POS orders
+- Cash drawer control, daily Z-report with queue safety check
+- Full error handling (400, 401, 403, 404, 409, 429, 500, 507)
+- Decimal arithmetic for fiscal math (no float drift)
 
-## 🖨️ Supported Printers
+## Supported Printers
 
-| Model | API Version | Status |
-|-------|-------------|--------|
-| **Novitus POINT** | ONLINE 3.0 | ✅ Fully Supported |
-| **Novitus HD II Online** | ONLINE 2.0 | ✅ Fully Supported |
-| **Novitus BONO Online** | ONLINE 2.0+ | ✅ Fully Supported |
-| **Novitus DEON Online** | ONLINE 2.0+ | ✅ Fully Supported |
+| Model | Minimum Firmware |
+|-------|-----------------|
+| Novitus POINT | ONLINE 3.0 (v1.00+) |
+| Novitus HD II Online | ONLINE 2.0 (v3.50+) |
+| Novitus BONO Online | v3.00+ |
+| Novitus DEON Online | v3.10+ |
 
-## 🚀 Quick Start
+## Quick Install
 
-```bash
-# Clone the repository
-git clone https://github.com/digicyfr/pos-novitus-printer.git
+1. Download ZIP from the branch matching your Odoo version
+2. Extract `pos_novitus_printer/` to your custom addons directory
+3. Restart Odoo, go to **Apps**, install **POS Novitus Online Fiscal Printer**
 
-# Copy to Odoo addons
-cp -r pos-novitus-printer /path/to/odoo/addons/pos_novitus_printer
+Full guide: [`docs/INSTALLATION_GUIDE.md`](pos_novitus_printer/docs/INSTALLATION_GUIDE.md)
 
-# Restart Odoo
-sudo systemctl restart odoo
+## License
 
-# Install in Odoo UI
-# Apps → Update Apps List → Search "novitus" → Install
-```
+LGPL-3 — free to use, modify, and distribute.
 
-## ⚙️ Configuration
+## Author
 
-1. **Go to**: Point of Sale → Configuration → Point of Sale
-2. **Add Printer**: Novitus Online Fiscal Printer
-3. **Enter Details**:
-   - IP Address: [Your printer IP]
-   - Port: 8888 (default)
-4. **Map PTU Rates**: Configure A-E tax mappings
-5. **Test Connection**: Verify connectivity
-6. **Save** and start using!
-
-## 🇵🇱 Polish Fiscal Compliance
-
-Full compliance with Polish fiscal regulations (2025):
-- Mandatory fiscal printing
-- Unique fiscal numbers
-- CRK transmission
-- PTU rate tracking
-- Complete audit trail
-
-## 📖 Documentation
-
-- **[Installation Guide](INSTALL.md)** - Detailed installation steps
-- **[FAQ](FAQ.md)** - Common questions and answers
-- **[Contributing](CONTRIBUTING.md)** - How to contribute
-
-## 💼 Professional Services
-
-While this module is **FREE**, we offer professional services:
-
-- **Implementation**: Starting at €500
-- **Support Contracts**: €500-2,000/year
-- **Custom Development**: €75-100/hour
-- **Consulting**: €100/hour
-
-**Contact**: info@digicyfr.com | www.digicyfr.com
-
-## 📄 License
-
-LGPL-3 - Free to use commercially, free to modify, free to distribute.
-
-## 👏 Credits
-
-**Author**: Azad Karipody Hamza
-**Company**: Digicyfr Polska | Warsaw, Poland
-**Website**: www.digicyfr.com
-
----
-
-**Made with ❤️ in Warsaw, Poland**
+**Digicyfr Polska** — Odoo Experts, Warsaw, Poland
+- Web: [www.digicyfr.com](https://www.digicyfr.com)
+- Email: [info@digicyfr.com](mailto:info@digicyfr.com)

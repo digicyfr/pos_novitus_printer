@@ -1,7 +1,7 @@
 <section class="oe_container">
     <div class="oe_row oe_spaced">
         <h2 class="oe_slogan" style="color:#875A7B;">POS Novitus Online Fiscal Printer</h2>
-        <h3 class="oe_slogan">Seamless integration with Novitus online fiscal printers via NoviAPI</h3>
+        <h3 class="oe_slogan">NoviAPI v1.0.4 integration for Odoo 17 POS &mdash; Polish fiscal compliance</h3>
         <div class="oe_demo oe_picture oe_screenshot">
             <img src="banner.png" alt="POS Novitus Printer">
         </div>
@@ -12,25 +12,36 @@
     <div class="oe_row oe_spaced">
         <h2 class="oe_slogan" style="color:#875A7B;">Features</h2>
         <div class="oe_span6">
-            <div class="oe_row_img oe_centered">
-                <img class="oe_picture oe_screenshot" src="icon.png" style="max-width: 200px;">
-            </div>
-        </div>
-        <div class="oe_span6">
             <p class="oe_mt32 text-justify">
-                <b>Complete NoviAPI Integration</b><br/>
-                Full support for Novitus online fiscal printers using the NoviAPI REST protocol.
-                Improved connection reliability with multi-endpoint fallback strategy.
+                <b>Verified NoviAPI Protocol</b><br/>
+                Full 3-step command flow (POST &rarr; PUT confirm &rarr; GET poll) with JWT token
+                authentication and automatic PATCH refresh.
             </p>
             <p class="oe_mt32 text-justify">
                 <b>Automatic Fiscal Receipts</b><br/>
-                Automatically send fiscal receipts to your Novitus printer when completing POS orders.
-                Supports both cash and electronic payments with proper tax calculation.
+                Fiscal receipts print automatically when completing POS orders.
+                Uses direct_io serial protocol commands for maximum compatibility.
             </p>
             <p class="oe_mt32 text-justify">
                 <b>Cash Drawer Control</b><br/>
-                Remotely control your cash drawer through the fiscal printer.
-                Perfect for secure cash handling in retail environments.
+                Open the cash drawer via direct_io $d command through the fiscal printer.
+            </p>
+        </div>
+        <div class="oe_span6">
+            <p class="oe_mt32 text-justify">
+                <b>PTU Tax Rate Mapping</b><br/>
+                Map Polish VAT rates to Novitus PTU letters:
+                A=23%, B=8%, C=5%, D=0%, E=exempt.
+            </p>
+            <p class="oe_mt32 text-justify">
+                <b>Daily Z-Report</b><br/>
+                Print daily fiscal Z-reports with automatic queue safety check.
+                Integrated into the POS close-session screen.
+            </p>
+            <p class="oe_mt32 text-justify">
+                <b>Complete Error Handling</b><br/>
+                Handles all NoviAPI error codes: 400, 401, 403, 404, 409, 429, 500, 507.
+                Clear Polish error messages for cashiers.
             </p>
         </div>
     </div>
@@ -38,41 +49,17 @@
 
 <section class="oe_container">
     <div class="oe_row oe_spaced">
-        <h2 class="oe_slogan" style="color:#875A7B;">Key Highlights</h2>
-        <div class="oe_span6">
-            <p class="oe_mt32">
-                <span class="fa fa-check-square-o text-primary"></span>
-                <b> Enhanced Endpoint Discovery</b><br/>
-                Automatically discovers and uses the correct NoviAPI endpoints with <code>/api/v1</code> prefix,
-                improving connection success rate from ~20% to ~80%.
+        <h2 class="oe_slogan" style="color:#875A7B;">Supported Printers</h2>
+        <div class="oe_span12 text-center">
+            <p style="font-size: 16px;">
+                All Novitus online fiscal printers with NoviAPI v1 support:
             </p>
-            <p class="oe_mt32">
-                <span class="fa fa-check-square-o text-primary"></span>
-                <b> Multi-Language Support</b><br/>
-                Full Polish translation included (pl.po). English interface available by default.
-            </p>
-            <p class="oe_mt32">
-                <span class="fa fa-check-square-o text-primary"></span>
-                <b> Production Ready</b><br/>
-                Thoroughly tested with comprehensive error handling and logging for troubleshooting.
-            </p>
-        </div>
-        <div class="oe_span6">
-            <p class="oe_mt32">
-                <span class="fa fa-check-square-o text-primary"></span>
-                <b> Easy Configuration</b><br/>
-                Simple setup through POS Configuration with connection testing built-in.
-            </p>
-            <p class="oe_mt32">
-                <span class="fa fa-check-square-o text-primary"></span>
-                <b> Secure Communication</b><br/>
-                HTTPS support with proper authentication and timeout management.
-            </p>
-            <p class="oe_mt32">
-                <span class="fa fa-check-square-o text-primary"></span>
-                <b> Open Source & FREE</b><br/>
-                LGPL-3 licensed. No hidden fees, completely free to use and modify.
-            </p>
+            <ul style="font-size: 16px; list-style: none; line-height: 2;">
+                <li><b>Novitus POINT</b> (ONLINE 3.0)</li>
+                <li><b>Novitus HD II Online</b> (ONLINE 2.0)</li>
+                <li><b>Novitus BONO Online</b></li>
+                <li><b>Novitus DEON Online</b></li>
+            </ul>
         </div>
     </div>
 </section>
@@ -82,10 +69,10 @@
         <h2 class="oe_slogan" style="color:#875A7B;">How It Works</h2>
         <div class="oe_span12">
             <ol class="oe_mt32" style="font-size: 16px; line-height: 1.8;">
-                <li><b>Install</b> the module from Odoo Apps</li>
-                <li><b>Configure</b> your Novitus printer details in POS Configuration</li>
-                <li><b>Test</b> the connection using the built-in test button</li>
-                <li><b>Start selling</b> - fiscal receipts are automatically printed!</li>
+                <li><b>Install</b> the module in Odoo 17</li>
+                <li><b>Configure</b> printer IP, port, and PTU tax mappings</li>
+                <li><b>Test</b> the connection with the built-in Test Connection button</li>
+                <li><b>Start selling</b> &mdash; fiscal receipts print automatically</li>
             </ol>
         </div>
     </div>
@@ -93,88 +80,41 @@
 
 <section class="oe_container">
     <div class="oe_row oe_spaced">
-        <h2 class="oe_slogan" style="color:#875A7B;">Configuration</h2>
+        <h2 class="oe_slogan" style="color:#875A7B;">Technical Highlights</h2>
         <div class="oe_span12">
-            <p class="oe_mt32 text-justify" style="font-size: 16px;">
-                Navigate to <b>Point of Sale → Configuration → Point of Sale</b>, select your POS,
-                and scroll to the <b>Novitus Printer Settings</b> section. Enter your printer details:
-            </p>
-            <ul style="font-size: 16px; line-height: 1.8;">
-                <li><b>NoviAPI URL</b>: Your printer's API endpoint (e.g., https://your-printer.novitus.pl)</li>
-                <li><b>Printer ID</b>: Your fiscal printer identifier</li>
-                <li><b>Username & Password</b>: Authentication credentials</li>
-                <li><b>Timeout</b>: Connection timeout in seconds (default: 30)</li>
+            <ul style="font-size: 15px; line-height: 1.8;">
+                <li>NoviAPI v1.0.4 verified 3-step command flow</li>
+                <li>JWT token caching with automatic PATCH refresh (saves rate limit)</li>
+                <li>Decimal arithmetic with ROUND_HALF_UP (prevents printer error 20)</li>
+                <li>Receipt cancellation via DELETE if PUT fails (prevents stuck jobs)</li>
+                <li>Queue check before daily Z-report (prevents 409 errors)</li>
+                <li>Connection test timeout: 5 seconds (fast failure feedback)</li>
+                <li>API call timeout: 30 seconds (sufficient for receipt printing)</li>
             </ul>
-            <p class="oe_mt32 text-justify" style="font-size: 16px;">
-                Click <b>Test Connection</b> to verify everything works correctly before going live.
-            </p>
         </div>
     </div>
 </section>
 
 <section class="oe_container oe_dark">
     <div class="oe_row oe_spaced">
-        <h2 class="oe_slogan" style="color:#875A7B;">Technical Improvements (v17.0.2.0.0)</h2>
-        <div class="oe_span12">
-            <p class="oe_mt32" style="font-size: 16px;">
-                This version includes major improvements based on NoviAPI research:
-            </p>
-            <ul style="font-size: 15px; line-height: 1.8;">
-                <li>✅ Added <code>/api/v1</code> prefix to all NoviAPI endpoints</li>
-                <li>✅ Implemented multi-endpoint fallback strategy for maximum compatibility</li>
-                <li>✅ Enhanced connection test with proper endpoint resolution</li>
-                <li>✅ Improved fiscal receipt endpoint handling</li>
-                <li>✅ Better cash drawer control endpoints</li>
-                <li>✅ Connection success rate improved from ~20% to ~80%</li>
-            </ul>
-        </div>
-    </div>
-</section>
-
-<section class="oe_container">
-    <div class="oe_row oe_spaced">
-        <h2 class="oe_slogan" style="color:#875A7B;">Support & Documentation</h2>
+        <h2 class="oe_slogan" style="color:#875A7B;">Support</h2>
         <div class="oe_span6">
-            <h3>📚 Documentation</h3>
+            <h3>Documentation</h3>
             <p style="font-size: 15px;">
-                Complete installation guide, FAQ, and troubleshooting documentation available on GitHub.
+                Complete installation guide and troubleshooting in the README.
             </p>
             <p>
-                <a href="https://github.com/digicyfr/pos_novitus_printer" target="_blank" class="btn btn-primary">
+                <a href="https://github.com/digicyfr/pos-novitus-printer" target="_blank" class="btn btn-primary">
                     <i class="fa fa-github"></i> View on GitHub
                 </a>
             </p>
         </div>
         <div class="oe_span6">
-            <h3>💬 Get Help</h3>
+            <h3>Get Help</h3>
             <p style="font-size: 15px;">
-                Need assistance? We're here to help!
-            </p>
-            <p>
                 <b>Email:</b> <a href="mailto:info@digicyfr.com">info@digicyfr.com</a><br/>
-                <b>Website:</b> <a href="http://www.digicyfr.com" target="_blank">www.digicyfr.com</a><br/>
-                <b>Issues:</b> <a href="https://github.com/digicyfr/pos_novitus_printer/issues" target="_blank">GitHub Issues</a>
-            </p>
-        </div>
-    </div>
-</section>
-
-<section class="oe_container oe_dark">
-    <div class="oe_row oe_spaced">
-        <h2 class="oe_slogan" style="color:#875A7B;">About Digicyfr Polska</h2>
-        <div class="oe_span12 text-center">
-            <p class="oe_mt32" style="font-size: 16px;">
-                <b>Digicyfr Polska</b> specializes in Odoo customization and integration solutions.
-                We build high-quality, production-ready modules for the Odoo ecosystem.
-            </p>
-            <p class="oe_mt16">
-                <a href="http://www.digicyfr.com" target="_blank" class="btn btn-primary btn-lg">
-                    Visit Our Website
-                </a>
-            </p>
-            <p class="oe_mt32" style="font-size: 14px; color: #999;">
-                This module is <b>FREE</b> and open source (LGPL-3 License).<br/>
-                Contributions and feedback are welcome!
+                <b>Website:</b> <a href="https://www.digicyfr.com" target="_blank">www.digicyfr.com</a><br/>
+                <b>Issues:</b> <a href="https://github.com/digicyfr/pos-novitus-printer/issues" target="_blank">GitHub Issues</a>
             </p>
         </div>
     </div>
@@ -182,13 +122,10 @@
 
 <section class="oe_container">
     <div class="oe_row oe_spaced">
-        <h2 class="oe_slogan" style="color:#875A7B;">Compatibility</h2>
         <div class="oe_span12 text-center">
-            <p style="font-size: 16px;">
-                <span class="fa fa-check-circle text-success" style="font-size: 24px;"></span><br/>
-                <b>Odoo 17.0</b> (Community & Enterprise)<br/>
-                <b>Python 3.8+</b><br/>
-                <b>Novitus NoviAPI</b> compatible printers
+            <p class="oe_mt32" style="font-size: 14px; color: #999;">
+                Free and open source (LGPL-3 License).<br/>
+                Developed by <b>Digicyfr Polska</b> &mdash; Odoo Experts in Warsaw, Poland.
             </p>
         </div>
     </div>

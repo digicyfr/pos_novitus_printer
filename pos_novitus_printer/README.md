@@ -7,212 +7,153 @@ Integrate Novitus online fiscal printers with Odoo Point of Sale for Polish fisc
 
 ## Features
 
-- ✅ Support for Novitus online fiscal printers (POINT, HD II Online, BONO Online, DEON Online)
-- ✅ NoviAPI REST protocol communication via HTTP/HTTPS
-- ✅ Fiscal receipt (paragon) printing with unique fiscal numbers
-- ✅ PTU (Polish VAT) rate mapping (A=23%, B=8%, C=5%, D=0%, E=exempt)
-- ✅ Fiscal number tracking on POS orders
-- ✅ Cash drawer control
-- ✅ Error handling and offline detection
-- ✅ Polish market fiscal compliance (2025)
+- Support for Novitus online fiscal printers (POINT, HD II Online, BONO Online, DEON Online)
+- NoviAPI v1.0.4 REST protocol with JWT token authentication
+- Verified 3-step command flow (POST, PUT confirm, GET poll)
+- Fiscal receipt printing via direct_io serial protocol commands
+- PTU (Polish VAT) rate mapping (A=23%, B=8%, C=5%, D=0%, E=exempt)
+- Fiscal number and JPK ID tracking on POS orders
+- Cash drawer control via direct_io
+- Daily Z-report with queue safety check
+- Automatic token refresh via PATCH (no rate limit consumed)
+- Full error handling: 400, 401, 403, 404, 409, 429, 500, 507
+- Decimal arithmetic for fiscal math (ROUND_HALF_UP, no float drift)
+- Polish market fiscal compliance (2025/2026)
+- Compatible with Odoo 17 Community & Enterprise
+
+## Supported Printers
+
+| Model | Minimum Firmware | NoviAPI |
+|-------|-----------------|---------|
+| Novitus POINT | ONLINE 3.0 (v1.00+) | v1 |
+| Novitus HD II Online | ONLINE 2.0 (v3.50+) | v1 |
+| Novitus BONO Online | v3.00+ | v1 |
+| Novitus DEON Online | v3.10+ | v1 |
 
 ## Requirements
 
-- Odoo 17.0 or higher
+- Odoo 17.0 (Community or Enterprise)
 - Python 3.10+
-- Novitus online fiscal printer with NoviAPI support
-- Network connectivity between Odoo server and printer
-- Fiscalized printer registered with Polish tax office (KAS)
+- Novitus online fiscal printer with NoviAPI enabled
+- Network connectivity between Odoo server and printer (port 8888)
+- For production: printer fiscalized and registered with Polish tax office (KAS)
 
 ## Installation
 
-### 1. Install Module
+### From ZIP file
+
+1. Download `pos_novitus_printer.zip`
+2. In Odoo: **Settings > Developer Tools > Import Module**
+3. Upload the ZIP file
+4. Restart Odoo if prompted
+
+### Manual installation
 
 ```bash
-# Copy module to Odoo addons directory
-sudo cp -r pos_novitus_printer /usr/lib/python3/dist-packages/odoo/addons/
-# OR copy to custom addons path
-sudo cp -r pos_novitus_printer /home/azad/.local/share/Odoo/addons/17.0/
+# Copy to your Odoo custom addons directory
+cp -r pos_novitus_printer /path/to/odoo/custom_addons/
+
+# Update addons_path in odoo.conf if needed
+# addons_path = /path/to/odoo/addons,/path/to/odoo/custom_addons
 
 # Restart Odoo
 sudo systemctl restart odoo
 ```
 
-### 2. Activate Module
+### Activate
 
-1. Login to Odoo as Administrator
+1. Login as Administrator
 2. Go to **Apps**
-3. Remove "Apps" filter
-4. Search for "Novitus"
-5. Click **Install** on "POS Novitus Online Fiscal Printer"
+3. Remove "Apps" filter, search for "Novitus"
+4. Click **Install**
 
 ## Configuration
 
 ### 1. Enable NoviAPI on Printer
 
-1. Access your Novitus printer menu
-2. Navigate to: **Ustawienia → Konfiguracja → Połączenia → NOVIAPI → OPCJE**
-3. Enable NoviAPI
-4. Configure IP address and port (default: 8888)
-5. Note the printer's IP address
+1. On the printer keypad, press **MENU**
+2. Navigate: **Ustawienia > Konfiguracja > Polaczenia > NOVIAPI > OPCJE**
+3. Set **Aktywna = ON**, **Protocol = HTTP**, **Port = 8888**
+4. Save and restart the printer
 
 ### 2. Configure in Odoo
 
-1. Go to **Point of Sale → Configuration → Point of Sale**
-2. Open your POS configuration
-3. Go to **Connected Devices** tab
-4. Under "Receipt Printer" or "Order Printers", click **Add a line**
-5. Create new printer:
-   - **Name**: "Novitus Main Printer"
-   - **Printer Type**: "Novitus Online Fiscal Printer"
-   - **IP Address**: Your printer IP (e.g., 192.168.1.100)
-   - **Port**: 8888 (or your custom port)
-   - **Use HTTPS**: Enable if printer supports HTTPS
-6. Click **Test Connection** to verify
-7. Configure **PTU Rate Mapping**:
+1. Go to **Point of Sale > Configuration > Preparation Printers**
+2. Click **New**, set Printer Type to **Novitus Online Fiscal Printer**
+3. Enter printer IP address and port (default: 8888)
+4. Click **Test Connection** to verify
+5. Map PTU tax rates:
    - **PTU A (23%)**: Select your 23% VAT tax
    - **PTU B (8%)**: Select your 8% VAT tax
    - **PTU C (5%)**: Select your 5% VAT tax
    - **PTU D (0%)**: Select your 0% VAT tax
    - **PTU E (Exempt)**: Select your exempt tax
-8. **Save**
+6. Save
 
 ### 3. Start Using
 
-1. Open POS
-2. Create order
-3. Process payment
-4. Receipt will automatically print on Novitus printer
-5. Fiscal number will be displayed and stored in order
+1. Open POS session
+2. Add products, process payment
+3. Fiscal receipt prints automatically on the Novitus printer
+4. Fiscal number stored in the order record
 
-## Usage
+## How It Works
 
-### Printing Fiscal Receipt
+The module uses the NoviAPI REST protocol with a 3-step command flow:
 
-Fiscal receipts are printed automatically when you complete a POS order. The fiscal number is displayed on screen and saved to the order.
+1. **POST** `/api/v1/direct_io` — submit receipt via serial protocol commands
+2. **PUT** `/api/v1/direct_io/{id}` — confirm the command
+3. **GET** `/api/v1/direct_io/{id}?timeout=5000` — poll until DONE
 
-### Viewing Fiscal Information
-
-1. Go to **Point of Sale → Orders → Orders**
-2. Open any order
-3. Click on **Fiscal Receipt** tab
-4. View fiscal number, printer ID, CRK transmission status
-
-### Manual Fiscal Printing
-
-If automatic printing fails, you can manually print:
-
-1. Open the order
-2. Go to **Fiscal Receipt** tab
-3. Click **Print Fiscal Receipt** button
-
-### Cash Drawer
-
-Cash drawer opens automatically when payment is processed (if supported by printer).
+Token management uses JWT with automatic PATCH refresh (does not count toward the 10/hour rate limit).
 
 ## Troubleshooting
 
-### "Cannot connect to printer"
+### Cannot connect to printer
 
-**Causes:**
-- Printer is offline
-- Wrong IP address or port
-- Network connectivity issues
-- NoviAPI not enabled on printer
+1. Verify printer is powered on: `ping <printer-ip>`
+2. Test NoviAPI: `curl -H "User-Agent: NoviApi" http://<printer-ip>:8888/api/v1`
+3. Check NoviAPI is enabled on the printer
+4. Verify port 8888 is not blocked by firewall
 
-**Solutions:**
-1. Check printer is powered on
-2. Verify IP address: `ping <printer-ip>`
-3. Check NoviAPI is enabled in printer settings
-4. Verify port number (default: 8888)
-5. Check firewall rules
+### Fiscal printing failed
 
-### "Fiscal printing failed"
-
-**Causes:**
-- Printer out of paper
-- Printer fiscal memory full
-- Network timeout
-- Invalid data
-
-**Solutions:**
 1. Check printer has paper
-2. Check fiscal memory status
-3. Increase timeout in settings
-4. Check PTU rate mappings are correct
-5. Review error message in order's "Fiscal Receipt" tab
+2. Check if daily Z-report is required (409 error)
+3. Review error in order's Fiscal Receipt tab
+4. Check Odoo logs for detailed error messages
 
-### Fiscal number not stored
+### Token rate limit (429)
 
-**Causes:**
-- Printer not returning fiscal number in response
-- Response format not recognized
-
-**Solutions:**
-1. Check printer firmware is up to date
-2. Review Odoo logs: `sudo tail -f /var/log/odoo/odoo-server.log`
-3. Contact support with log details
-
-## Supported Printers
-
-All Novitus online fiscal printers with NoviAPI support:
-
-- **Novitus POINT** (ONLINE 3.0) ✅
-- **Novitus HD II Online** (ONLINE 2.0) ✅
-- **Novitus BONO Online** ✅
-- **Novitus DEON Online** ✅
+Reset from printer menu: **[3 SERWIS] > [3.3.1 ZEROWANIE] > [9 ZERUJ NOVIAPI] > [2 ODBLOKUJ]**
 
 ## Polish Fiscal Compliance
 
-This module provides full compliance with Polish fiscal regulations (2025):
-
-- ✅ Unique fiscal receipt numbers
-- ✅ PTU (VAT) rate tracking
-- ✅ Automatic CRK transmission
-- ✅ Fiscal memory protection
-- ✅ Daily reports support
-- ✅ Paragon and faktura support
+- Unique fiscal receipt numbers (paragon fiskalny)
+- PTU (VAT) rate tracking per Polish fiscal law
+- CRK (Centralne Repozytorium Kas) transmission
+- Daily Z-report support
+- Buyer NIP on B2B receipts (faktura do paragonu)
+- Decimal arithmetic matching printer expectations (no error 20)
 
 ## License
 
-This project is licensed under the LGPL-3 License - see [LICENSE](LICENSE) file.
+LGPL-3 - see [LICENSE](LICENSE) file.
 
 ## Author
 
-**Azad Karipody Hamza**
-- Website: https://kebabsuperking.website
-- Email: azadkaripodyhamza@gmail.com
+**Digicyfr Polska** - Odoo Experts in Warsaw, Poland
 
-## Support
-
-- **Issues**: Report issues on GitHub
-- **Documentation**: See this README and inline code comments
-- **Community**: Polish Odoo community forums
+- Website: [www.digicyfr.com](https://www.digicyfr.com)
+- Email: [info@digicyfr.com](mailto:info@digicyfr.com)
+- GitHub: [github.com/digicyfr](https://github.com/digicyfr)
 
 ## Contributing
 
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create feature branch
-3. Make changes
-4. Test thoroughly
-5. Submit pull request
-
-## Changelog
-
-### Version 1.0.0 (2025-01-13)
-- Initial release
-- NoviAPI REST integration
-- PTU rate mapping
-- Fiscal number tracking
-- Polish fiscal compliance
+Contributions are welcome! Please fork the repository, create a feature branch, test thoroughly, and submit a pull request.
 
 ## Credits
 
-- Novitus for NoviAPI protocol
-- Odoo Community for POS framework
-- Polish Odoo community for localization
-
----
-
-**Made with ❤️ for Polish retail businesses**
+- [Novitus](https://novitus.pl) for the NoviAPI protocol
+- [Odoo](https://www.odoo.com) Community for the POS framework
+- Polish Odoo community for localization support
