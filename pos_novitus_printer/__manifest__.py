@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'POS Novitus Online Fiscal Printer',
-    'version': '17.0.3.0.0',
+    'version': '18.0.1.0.0',
     'category': 'Point of Sale',
     'summary': 'Novitus fiscal printer integration for Odoo POS via NoviAPI - Polish compliance',
 

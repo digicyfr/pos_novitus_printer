@@ -9,6 +9,26 @@ class PosPrinter(models.Model):
     """Extend pos.printer to add Novitus online fiscal printer support"""
     _inherit = 'pos.printer'
 
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        """Extend POS data loader to include Novitus fields (Odoo 18 signature)."""
+        result = super()._load_pos_data_fields(config_id)
+        result.extend([
+            'novitus_printer_ip',
+            'novitus_printer_port',
+            'novitus_use_https',
+            'novitus_fiscal_id',
+            'novitus_printer_model',
+            'novitus_cashier_id',
+            'novitus_ptu_a_tax_id',
+            'novitus_ptu_b_tax_id',
+            'novitus_ptu_c_tax_id',
+            'novitus_ptu_d_tax_id',
+            'novitus_ptu_e_tax_id',
+            'novitus_connection_status',
+        ])
+        return result
+
     printer_type = fields.Selection(
         selection_add=[
             ('novitus_online', 'Novitus Online Fiscal Printer')
